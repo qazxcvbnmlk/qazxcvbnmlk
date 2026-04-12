@@ -1,0 +1,105 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Ozon Hub | reallfell3",
+   LoadingTitle = "モバイルリーチ修正",
+   LoadingSubtitle = "by Gemini",
+   ConfigurationSaving = {Enabled = true, FolderName = "OzonHub"}
+})
+
+local REACH_DISTANCE = 15
+local DEFAULT_REACH = 15
+local Player = game:GetService("Players").LocalPlayer
+
+-- 関数: リーチ値を確認して追加
+local function checkAndAddReach()
+    pcall(function()
+        local reachNames = {"FartherReach", "DefaultReach", "CurrentReach"}
+        for _, name in pairs(reachNames) do
+            local obj = Player:FindFirstChild(name)
+            if not obj then
+                local newObj = Instance.new("NumberValue")
+                newObj.Name = name
+                newObj.Value = REACH_DISTANCE
+                newObj.Parent = Player
+            else
+                obj.Value = REACH_DISTANCE
+            end
+        end
+    end)
+end
+
+-- タブ1
+local Tab1 = Window:CreateTab("リーチ", 4483362458)
+
+Tab1:CreateToggle({
+   Name = "リーチ有効化 (40スタッド)",
+   CurrentValue = false,
+   Callback = function(Value)
+       if Value then
+           REACH_DISTANCE = 40
+       else
+           REACH_DISTANCE = DEFAULT_REACH
+       end
+       checkAndAddReach()
+   end,
+})
+
+Tab1:CreateButton({
+   Name = "ライン拡張",
+   Callback = function()
+       for _, v in pairs(workspace:GetDescendants()) do
+           if v:IsA("Beam") and v.Name:lower():find("grab") then
+               v.Enabled = true
+               v.Width0 = 0.5
+               v.Width1 = 0.5
+               v.FadeLength = 0
+               v.Transparency = NumberSequence.new(0)
+           end
+       end
+   end,
+})
+
+-- タブ2: カオス
+local Tab2 = Window:CreateTab("カオス", 4483345998)
+
+Tab2:CreateButton({
+   Name = "全員ラグドール (バナナ)",
+   Callback = function()
+       local banana = Player.Character:FindFirstChild("Banana") or Player.Backpack:FindFirstChild("Banana")
+       if banana then
+           banana.Parent = Player.Character
+           for _, target in pairs(game.Players:GetPlayers()) do
+               if target ~= Player and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                   firetouchinterest(target.Character.HumanoidRootPart, banana.Handle, 0)
+                   task.wait(0.01)
+                   firetouchinterest(target.Character.HumanoidRootPart, banana.Handle, 1)
+               end
+           end
+       else
+           Rayfield:Notify({Title = "エラー", Content = "バナナを持って！", Duration = 2})
+       end
+   end,
+})
+
+-- ループで値を固定
+game:GetService("RunService").Heartbeat:Connect(function()
+    checkAndAddReach()
+end)
+
+-- レイキャストバイパス
+local mt = getrawmetatable(game)
+local oldNamecall = mt.__namecall
+setreadonly(mt, false)
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+    if (method == "Raycast" or method == "FindPartOnRay") and not checkcaller() then
+        if args[2] then
+            args[2] = args[2].Unit * REACH_DISTANCE
+            return oldNamecall(self, unpack(args))
+        end
+    end
+    return oldNamecall(self, ...)
+end)
+setreadonly(mt, true)
