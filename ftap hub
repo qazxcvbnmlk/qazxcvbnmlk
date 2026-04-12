@@ -1,0 +1,107 @@
+
+
+
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Ozon Hub | reallfell3",
+   LoadingTitle = "Mobile Reach Fix",
+   LoadingSubtitle = "by Gemini",
+   ConfigurationSaving = {Enabled = true, FolderName = "OzonHub"}
+})
+
+local REACH_DISTANCE = 40
+local Player = game:GetService("Players").LocalPlayer
+
+-- فەرمانێک بۆ دروستکردنی ڤالوەکە ئەگەر نەبوو
+local function checkAndAddReach()
+    pcall(function()
+        local reachNames = {"FartherReach", "DefaultReach", "CurrentReach"}
+        for _, name in pairs(reachNames) do
+            local obj = Player:FindFirstChild(name)
+            if not obj then
+                -- ئەگەر نەبوو، لێرەدا دروستی دەکەین
+                local newObj = Instance.new("NumberValue")
+                newObj.Name = name
+                newObj.Value = REACH_DISTANCE
+                newObj.Parent = Player
+            else
+                obj.Value = REACH_DISTANCE
+            end
+        end
+    end)
+end
+
+-- تابی یەکەم
+local Tab1 = Window:CreateTab("Reach", 4483362458)
+
+Tab1:CreateSlider({
+   Name = "مەودای گرتن (Reach)",
+   Range = {15, 100},
+   Increment = 1,
+   CurrentValue = 40,
+   Callback = function(Value) 
+       REACH_DISTANCE = Value 
+       checkAndAddReach()
+   end,
+})
+
+Tab1:CreateButton({
+   Name = "درێژکردنەوەی هێڵ (Extend Line)",
+   Callback = function()
+       for _, v in pairs(workspace:GetDescendants()) do
+           if v:IsA("Beam") and v.Name:lower():find("grab") then
+               v.Enabled = true
+               v.Width0 = 0.5
+               v.Width1 = 0.5
+               v.FadeLength = 0
+               v.Transparency = NumberSequence.new(0)
+           end
+       end
+   end,
+})
+
+-- تابی دووەم: مووز (Banana)
+local Tab2 = Window:CreateTab("Chaos", 4483345998)
+
+Tab2:CreateButton({
+   Name = "Ragdoll All (Banana)",
+   Callback = function()
+       local banana = Player.Character:FindFirstChild("Banana") or Player.Backpack:FindFirstChild("Banana")
+       if banana then
+           banana.Parent = Player.Character
+           for _, target in pairs(game.Players:GetPlayers()) do
+               if target ~= Player and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                   firetouchinterest(target.Character.HumanoidRootPart, banana.Handle, 0)
+                   task.wait(0.01)
+                   firetouchinterest(target.Character.HumanoidRootPart, banana.Handle, 1)
+               end
+           end
+       else
+           Rayfield:Notify({Title = "Error", Content = "مووزەکە بگرە!", Duration = 2})
+       end
+   end,
+})
+
+-- لووپ بۆ قفڵکردنی نرخەکان
+game:GetService("RunService").Heartbeat:Connect(function()
+    checkAndAddReach()
+end)
+
+-- هاککردنی مەودای کلیک (Raycast Bypass)
+local mt = getrawmetatable(game)
+local oldNamecall = mt.__namecall
+setreadonly(mt, false)
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+    if (method == "Raycast" or method == "FindPartOnRay") and not checkcaller() then
+        if args[2] then
+            args[2] = args[2].Unit * REACH_DISTANCE
+            return oldNamecall(self, unpack(args))
+        end
+    end
+    return oldNamecall(self, ...)
+end)
+setreadonly(mt, true)
