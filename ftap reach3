@@ -1,0 +1,12 @@
+local v0=loadstring(game:HttpGet("https://sirius.menu/rayfield"))();local v1=v0:CreateWindow({Name="Fling Reach 40 Studs",LoadingTitle="داگیرساندنی Hook...",LoadingSubtitle="تایبەت بۆ Delta Executor",ConfigurationSaving={Enabled=false},KeySystem=false,ToggleKey=Enum.KeyCode.RightControl});local v2=v1:CreateTab("Reach Master",6609757283 -2126411285 );_G.TargetStuds=992 -(802 + 150) ;_G.HookEnabled=false;v2:CreateSlider({Name="دووری گرتن (Studs)",Range={15,80},Increment=1066 -(68 + 997) ,Suffix="Studs",CurrentValue=30 + 10 ,Flag="ReachSlider40",Callback=function(v3) _G.TargetStuds=v3;end});v2:CreateToggle({Name="چالاککردنی ٤٠ فۆت (Raycast Hook)",CurrentValue=false,Flag="ReachToggle40",Callback=function(v4) local v5=1270 -(226 + 1044) ;while true do if (v5==(0 -0)) then _G.HookEnabled=v4;if v4 then pcall(function() local v6=117 -(32 + 85) ;local v7;while true do if (v6==(0 + 0)) then v7=nil;v7=hookmetamethod(game,"__namecall",function(v8,...) local v9=0 + 0 ;local v10;local v11;while true do if (v9==(958 -(892 + 65))) then if (((v11=="Raycast") or (v11=="FindPartOnRay")) and _G.HookEnabled) then if (v10[2] and (typeof(v10[4 -2 ])=="Vector3")) then local v12=0 -0 ;local v13;while true do if (v12==(0 -0)) then v13=350 -(87 + 263) ;while true do if (v13==(180 -(67 + 113))) then v10[3 -1 ]=v10[1 + 1 ].Unit * _G.TargetStuds ;return v7(v8,unpack(v10));end end break;end end end end return v7(v8,...);end if (v9==(0 + 0)) then v10={...};v11=getnamecallmethod();v9=1 + 0 ;end end end);break;end end end);end break;end end end});
+-- ⚠️ WARNING: integrity protected!
+--[[
+ .____                  ________ ___.    _____                           __                
+ |    |    __ _______   \_____  \\_ |___/ ____\_ __  ______ ____ _____ _/  |_  ___________ 
+ |    |   |  |  \__  \   /   |   \| __ \   __\  |  \/  ___// ___\\__  \\   __\/  _ \_  __ \
+ |    |___|  |  // __ \_/    |    \ \_\ \  | |  |  /\___ \\  \___ / __ \|  | (  <_> )  | \/
+ |_______ \____/(____  /\_______  /___  /__| |____//____  >\___  >____  /__|  \____/|__|   
+         \/          \/         \/    \/                \/     \/     \/                   
+          \_Welcome to LuaObfuscator.com   (Alpha 0.10.9) ~  Much Love, Ferib 
+
+]]--
