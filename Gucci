@@ -1,0 +1,595 @@
+-- =========================================================================
+-- RAYFIELD INITIALIZATION & SERVICES
+-- =========================================================================
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local Player = Players.LocalPlayer
+local RS = ReplicatedStorage
+local R = RunService
+
+local Window = Rayfield:CreateWindow({
+    Name = "FTAP - Ultimate Gucci Hub",
+    LoadingTitle = "Loading Gucci & Defense Utilities...",
+    LoadingSubtitle = "by Assistant",
+    ConfigurationSaving = { Enabled = false },
+    KeySystem = false
+})
+
+-- TABS
+local Tab1 = Window:CreateTab("Main Gucci", 4483362458)
+local Tab2 = Window:CreateTab("Train & TP", 4483362458)
+local Tab3 = Window:CreateTab("Target & Defense", 4483362458)
+
+-- Global Registry & Helpers
+local ToggleStates = {}
+local function SetToggleState(flag, val)
+    ToggleStates[flag] = val
+end
+
+local function notify(title, text, duration)
+    Rayfield:Notify({
+        Title = title,
+        Content = text,
+        Duration = duration or 3
+    })
+end
+
+local function FWC(parent, childName, timeout)
+    if not parent then return nil end
+    return parent:WaitForChild(childName, timeout or 5)
+end
+
+local function grab(part)
+    if not part then return end
+    pcall(function()
+        if RS:FindFirstChild("GrabEvents") and RS.GrabEvents:FindFirstChild("SetNetworkOwner") then
+            RS.GrabEvents.SetNetworkOwner:FireServer(part)
+        end
+    end)
+end
+
+local function ResetPlayer(plr)
+    if plr and plr.Character then
+        local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum.Health = 0 end
+    end
+end
+
+-- =========================================================================
+-- TAB 1: MAIN GUCCI & INVISIBLE LOGIC
+-- =========================================================================
+local gucciRunId = 0
+local autoGucciEnabled = false
+local autoGucciSpamTask = nil
+
+local function cleanupGucciTasks()
+    if autoGucciSpamTask then
+        task.cancel(autoGucciSpamTask)
+        autoGucciSpamTask = nil
+    end
+end
+
+local function toy_spawn_gucci(toyName, cf, rot)
+    local inv = Workspace:FindFirstChild(Player.Name .. "SpawnedInToys")
+    if not inv then return nil end
+    
+    pcall(function()
+        RS.MenuToys.SpawnToyRemoteFunction:InvokeServer(toyName, cf, rot)
+    end)
+
+    local t = tick()
+    local spawnedToy = nil
+    repeat
+        task.wait(0.1)
+        spawnedToy = inv:FindFirstChild(toyName)
+    until spawnedToy or (tick() - t > 3)
+    
+    return spawnedToy
+end
+
+local function SpawnGucciToy(toyName, hrp)
+    local inv = Workspace:FindFirstChild(Player.Name .. "SpawnedInToys")
+    if not inv then return nil end
+    
+    local spawnCF = hrp.CFrame * CFrame.new(0, 14, 20)
+    task.spawn(function()
+        pcall(function()
+            RS.MenuToys.SpawnToyRemoteFunction:InvokeServer(toyName, spawnCF, Vector3.zero)
+        end)
+    end)
+
+    local t = tick()
+    local spawnedToy = nil
+    repeat
+        task.wait(0.1)
+        spawnedToy = inv:FindFirstChild(toyName)
+    until spawnedToy or (tick() - t > 3)
+    
+    return spawnedToy
+end
+
+local function runBlobmanGucci()
+    gucciRunId = gucciRunId + 1
+    local MyId = gucciRunId
+
+    local char = Player.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if not char or not hum then return end
+
+    local autoGucciT, sitJumpT, Blob, BHead = true, false, nil, nil
+    
+    task.spawn(function()
+        while not Blob and MyId == gucciRunId do
+            task.wait(0.01)
+        end
+        if MyId ~= gucciRunId then return end
+        
+        BHead = FWC(Blob, "Head")
+        local HitBox = FWC(Blob, "GrabbableHitbox")
+        
+        while MyId == gucciRunId and BHead and
+        (not BHead:FindFirstChild("PartOwner") or BHead.PartOwner.Value ~= Player.Name) do
+            grab(HitBox)
+            task.wait(0.01)
+        end
+    end)
+    
+    local hrp = FWC(char, "HumanoidRootPart")
+    if not hrp then return end
+
+    Blob = toy_spawn_gucci("CreatureBlobman", hrp.CFrame * CFrame.new(0, 0, -5), Vector3.new(0, -15.716, 0))
+    if not Blob then return end
+    
+    local Seat = FWC(Blob, "VehicleSeat")
+    
+    task.defer(function()
+        if not (char and hum) then return end
+        local startTime = tick()
+        while autoGucciT and MyId == gucciRunId and (tick() - startTime < 0.3) do
+            if Blob and Blob.Parent and Seat and Seat.Parent and Seat.Occupant ~= hum then
+                Seat:Sit(hum)
+            end
+            task.wait(0.03)
+            if char and hum and hum.Parent then
+                hum:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+            task.wait(0.03)
+        end
+        autoGucciT = false
+        sitJumpT = false
+    end)
+    
+    sitJumpT = true
+    task.defer(function()
+        while sitJumpT and MyId == gucciRunId do
+            if char and hrp and hrp.Parent then
+                RS.CharacterEvents.RagdollRemote:FireServer(hrp, 0.095)
+            end
+            task.wait(0.01)
+        end
+    end)
+    
+    task.wait(0.4)
+    if MyId ~= gucciRunId then return end
+    
+    hum.Sit = false
+    Blob.Name = "Gucci"
+    
+    for _, v in pairs(Blob:GetChildren()) do
+        if v:IsA("BasePart") then
+            v.CanCollide = false
+            v.CanTouch = false
+            v.CanQuery = false
+        end
+    end
+    
+    task.defer(function()
+        while MyId == gucciRunId and Blob and BHead do
+            BHead.CFrame = CFrame.new(BHead.Position.X, 1e5, BHead.Position.Z)
+            task.wait(0.01)
+        end
+    end)
+end
+
+Tab1:CreateSection("Gucci Modes")
+
+Tab1:CreateButton({
+    Name = "Trigger Blobman Gucci",
+    Callback = function()
+        runBlobmanGucci()
+        notify("Blobman Gucci", "Executed Blobman Gucci Routine!", 3)
+    end
+})
+
+Tab1:CreateToggle({
+    Name = "auto Gucci(Invisible)",
+    Flag = "AutoGucci",
+    CurrentValue = false,
+    Callback = function(Value)
+        SetToggleState("AutoGucci", Value)
+        autoGucciEnabled = Value
+        
+        if Value then
+            local isActive = false
+            local function gucci()
+                if not autoGucciEnabled or isActive then return end
+                isActive = true
+                local char = Player.Character
+                if not char then isActive = false return end
+                
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                local hum = char:FindFirstChild("Humanoid")
+                local head = char:FindFirstChild("Head")
+                local inv = Workspace:FindFirstChild(Player.Name .. "SpawnedInToys")
+                
+                if not (hrp and hum and head and inv) then isActive = false return end
+
+                cleanupGucciTasks()
+                for _, v in pairs(inv:GetChildren()) do
+                    if v.Name == "AutoGucci" or v.Name == "TractorGreen" then
+                        pcall(function() RS.MenuToys.DestroyToy:FireServer(v) end)
+                    end
+                end
+                
+                local tractor = SpawnGucciToy("TractorGreen", hrp)
+                if tractor then
+                    tractor.Name = "AutoGucci"
+                    local seat = tractor:FindFirstChildWhichIsA("VehicleSeat") or tractor:FindFirstChildWhichIsA("Seat")
+                    if seat then
+                        seat:Sit(hum)
+                        task.wait(0.1)
+                        autoGucciSpamTask = task.spawn(function()
+                            while autoGucciEnabled and tractor and tractor.Parent do
+                                pcall(function()
+                                    head.CFrame = CFrame.new(head.Position.X, 100000, head.Position.Z)
+                                end)
+                                task.wait(0.01)
+                            end
+                        end)
+                    end
+                end
+                isActive = false
+            end
+            task.spawn(gucci)
+            notify("Auto Gucci", "Auto Gucci (Invisible) Enabled", 3)
+        else
+            cleanupGucciTasks()
+            gucciRunId = gucciRunId + 1
+            local inv = Workspace:FindFirstChild(Player.Name .. "SpawnedInToys")
+            if inv then
+                for _, v in pairs(inv:GetChildren()) do
+                    if v.Name == "AutoGucci" or v.Name == "Gucci" then
+                        pcall(function() RS.MenuToys.DestroyToy:FireServer(v) end)
+                    end
+                end
+            end
+            notify("Auto Gucci", "Auto Gucci (Invisible) Disabled", 3)
+        end
+    end
+})
+
+-- =========================================================================
+-- TAB 2: TRAIN & LOOP TP
+-- =========================================================================
+local antiGucciConnectionTrain
+local safePositionTrain
+local restoreFramesTrain = 0
+local autoGucciActiveTrain = false
+local tpActive = false
+
+local function startAntiGucciTrain()
+    local character = Player.Character or Player.CharacterAdded:Wait()
+    local humanoid = character:WaitForChild("Humanoid")
+    local rootPart = character:WaitForChild("HumanoidRootPart")
+    safePositionTrain = rootPart.Position
+
+    local mapFolder = Workspace:FindFirstChild("Map") and Workspace.Map:FindFirstChild("AlwaysHereTweenedObjects")
+    local train = mapFolder and mapFolder:FindFirstChild("Train")
+    local seat
+
+    if train then
+        for _, d in ipairs(train:GetDescendants()) do
+            if d:IsA("Seat") or d:IsA("VehicleSeat") then
+                seat = d
+                break
+            end
+        end
+    end
+
+    if seat then
+        rootPart.CFrame = seat.CFrame + Vector3.new(0, 2, 0)
+        seat:Sit(humanoid)
+    end
+
+    humanoid:GetPropertyChangedSignal("Jump"):Connect(function()
+        if humanoid.Jump and humanoid.Sit then
+            restoreFramesTrain = 15
+            safePositionTrain = rootPart.Position
+        end
+    end)
+
+    if antiGucciConnectionTrain then antiGucciConnectionTrain:Disconnect() end
+
+    antiGucciConnectionTrain = R.Heartbeat:Connect(function()
+        if not rootPart or not humanoid then return end
+        pcall(function() RS.CharacterEvents.RagdollRemote:FireServer(rootPart, 0) end)
+
+        if restoreFramesTrain > 0 then
+            rootPart.CFrame = CFrame.new(safePositionTrain)
+            restoreFramesTrain = restoreFramesTrain - 1
+        end
+    end)
+end
+
+local function stopAntiGucciTrain()
+    if antiGucciConnectionTrain then
+        antiGucciConnectionTrain:Disconnect()
+        antiGucciConnectionTrain = nil
+    end
+    local mapFolder = Workspace:FindFirstChild("Map")
+    local trainFolder = mapFolder and mapFolder:FindFirstChild("AlwaysHereTweenedObjects")
+    if trainFolder and trainFolder:FindFirstChild("Train") then
+        ResetPlayer(Player)
+    end
+end
+
+Tab2:CreateSection("Train Controls")
+
+Tab2:CreateToggle({
+    Name = "Anti Gucci (Train)",
+    Flag = "Anti Gucci (Train)",
+    CurrentValue = false,
+    Callback = function(Value)
+        SetToggleState("Anti Gucci (Train)", Value)
+        autoGucciActiveTrain = Value
+        if Value then
+            startAntiGucciTrain()
+            notify("System", "Gucci train active (monitoring)", 3)
+            task.spawn(function()
+                while autoGucciActiveTrain do
+                    local mapFolder = Workspace:FindFirstChild("Map")
+                    local trainFolder = mapFolder and mapFolder:FindFirstChild("AlwaysHereTweenedObjects")
+                    local trainExists = trainFolder and trainFolder:FindFirstChild("Train")
+                    if not trainExists then
+                        stopAntiGucciTrain()
+                        notify("System", "Train lost", 3)
+                        local retries = 0
+                        repeat
+                            task.wait(0.2)
+                            retries = retries + 1
+                            mapFolder = Workspace:FindFirstChild("Map")
+                            trainFolder = mapFolder and mapFolder:FindFirstChild("AlwaysHereTweenedObjects")
+                        until (trainFolder and trainFolder:FindFirstChild("Train")) or retries > 25 or not autoGucciActiveTrain
+                        if autoGucciActiveTrain and trainFolder and trainFolder:FindFirstChild("Train") then
+                            startAntiGucciTrain()
+                            notify("System", "Train restored.", 3)
+                        end
+                    end
+                    task.wait(0.5)
+                end
+            end)
+        else
+            autoGucciActiveTrain = false
+            stopAntiGucciTrain()
+            notify("System", "Train Gucci disabled.", 3)
+        end
+    end
+})
+
+Tab2:CreateSection("Movement Utilities")
+
+Tab2:CreateToggle({
+    Name = "Loop TP",
+    Flag = "Loop TP",
+    CurrentValue = false,
+    Callback = function(Value)
+        SetToggleState("Loop TP", Value)
+        tpActive = Value
+        local char = Player.Character or Player.CharacterAdded:Wait()
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if Value then
+            if hum then hum.PlatformStand = true end
+            task.spawn(function()
+                while tpActive and hrp do
+                    local x = math.random(-500, 500)
+                    local y = math.random(30, 480)
+                    local z = math.random(-500, 500)
+                    hrp.CFrame = CFrame.new(x, y, z)
+                    task.wait(0.03)
+                end
+            end)
+        else
+            if hum then hum.PlatformStand = false end
+        end
+    end,
+})
+
+-- =========================================================================
+-- TAB 3: TARGET & DEFENSE (SHURIKEN & HELL AURA)
+-- =========================================================================
+_G.ShurikenAntiKick = false
+
+local function ClearKunai()
+    local inv = Workspace:FindFirstChild(Player.Name .. "SpawnedInToys")
+    if inv then
+        for _, v in pairs(inv:GetChildren()) do
+            if v.Name == "WeaponKunai" or v.Name == "Shuriken" then
+                pcall(function() RS.MenuToys.DestroyToy:FireServer(v) end)
+            end
+        end
+    end
+end
+
+Tab3:CreateSection("Anti-Kick Systems")
+
+Tab3:CreateToggle({
+    Name = "Shuriken Anti-Kick",
+    Flag = "ShurikenAntiKick",
+    CurrentValue = false,
+    Callback = function(Value)
+        SetToggleState("ShurikenAntiKick", Value)
+        _G.ShurikenAntiKick = Value
+        if Value then
+            notify("Defense", "Shuriken Anti-Kick Enabled", 3)
+            task.spawn(function()
+                while _G.ShurikenAntiKick do
+                    task.wait(0.5)
+                end
+                ClearKunai()
+            end)
+        else
+            _G.ShurikenAntiKick = false
+            ClearKunai()
+            notify("Defense", "Shuriken Anti-Kick Disabled", 3)
+        end
+    end
+})
+
+Player.CharacterAdded:Connect(function()
+    if _G.ShurikenAntiKick then
+        task.wait(1)
+    end
+end)
+
+-- HELL SEND AURA LOGIC
+local vu390 = {
+    localPlayer = Player,
+    Players = Players,
+    auraRadius = 25,
+    SetNetworkOwner = RS:WaitForChild("GrabEvents", 5) and RS.GrabEvents:WaitForChild("SetNetworkOwner", 5),
+    active = false,
+    thread = nil
+}
+
+local vu12 = { CurrentCamera = Workspace.CurrentCamera }
+
+local function startHellSendAura()
+    vu390.active = true
+    vu390.thread = task.spawn(function()
+        while vu390.active do
+            local success, err = pcall(function()
+                local char = vu390.localPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local hrp = char.HumanoidRootPart
+                    local cam = vu12.CurrentCamera
+                    for _, targetPlr in pairs(vu390.Players:GetPlayers()) do
+                        if targetPlr ~= vu390.localPlayer and targetPlr.Character then
+                            local tChar = targetPlr.Character
+                            local torso = tChar:FindFirstChild("Torso") or tChar:FindFirstChild("UpperTorso")
+                            if torso and (torso.Position - hrp.Position).Magnitude <= vu390.auraRadius then
+                                if vu390.SetNetworkOwner then
+                                    vu390.SetNetworkOwner:FireServer(torso, hrp.CFrame)
+                                end
+                                for _, part in ipairs(tChar:GetDescendants()) do
+                                    if part:IsA("BasePart") then
+                                        part.CanCollide = false
+                                    end
+                                end
+                                local pos = torso:FindFirstChild("HellAuraPos") or Instance.new("BodyPosition")
+                                pos.Name = "HellAuraPos"
+                                pos.MaxForce = Vector3.new(100000, 100000, 100000)
+                                pos.D = 500
+                                pos.P = 50000
+                                pos.Parent = torso
+
+                                local gyro = torso:FindFirstChild("HellAuraGyro") or Instance.new("BodyGyro")
+                                gyro.Name = "HellAuraGyro"
+                                gyro.MaxTorque = Vector3.new(100000, 100000, 100000)
+                                gyro.D = 500
+                                gyro.P = 50000
+                                gyro.Parent = torso
+
+                                local look = cam.CFrame.LookVector
+                                pos.Position = hrp.Position + (look * 15) + Vector3.new(0, 5, 0)
+                                gyro.CFrame = CFrame.new(torso.Position, hrp.Position)
+                            end
+                        end
+                    end
+                end
+            end)
+            if not success then
+                warn("Hell Aura Error: " .. tostring(err))
+            end
+            task.wait(0.03)
+        end
+    end)
+end
+
+local function stopHellSendAura()
+    vu390.active = false
+    if vu390.thread then
+        task.cancel(vu390.thread)
+        vu390.thread = nil
+    end
+end
+
+Tab3:CreateSection("Aura Features")
+
+Tab3:CreateToggle({
+    Name = "Hell Send Aura",
+    Flag = "HellSendAura",
+    CurrentValue = false,
+    Callback = function(Value)
+        SetToggleState("HellSendAura", Value)
+        if Value then
+            startHellSendAura()
+            notify("Aura", "Hell Send Aura Activated", 3)
+        else
+            stopHellSendAura()
+            notify("Aura", "Hell Send Aura Deactivated", 3)
+        end
+    end
+})
+
+-- TARGET INTERACTION LOGIC
+local selectedKickPlayer = nil
+
+local function getPlayerList()
+    local list = {}
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= Player then
+            table.insert(list, plr.DisplayName .. " (@" .. plr.Name .. ")")
+        end
+    end
+    return list
+end
+
+local function getPlayerFromSelection(selection)
+    if not selection or selection == "" then return nil end
+    local username = selection:match("@(.-)%)")
+    if username then
+        return Players:FindFirstChild(username)
+    end
+    return nil
+end
+
+Tab3:CreateSection("Target Interaction")
+
+local PlayerDropdown = Tab3:CreateDropdown({
+    Name = "Select Target Player",
+    Options = getPlayerList(),
+    CurrentOption = "",
+    MultipleOptions = false,
+    Flag = "TargetPlayerDropdown",
+    Callback = function(Option)
+        local choice = type(Option) == "table" and Option[1] or Option
+        selectedKickPlayer = getPlayerFromSelection(choice)
+        if selectedKickPlayer then
+            notify("Target Selected", "Target set to: " .. selectedKickPlayer.Name, 3)
+        end
+    end,
+})
+
+Tab3:CreateButton({
+    Name = "Refresh Target List",
+    Callback = function()
+        PlayerDropdown:Refresh(getPlayerList())
+        notify("Target System", "Player list refreshed!", 3)
+    end
+})
